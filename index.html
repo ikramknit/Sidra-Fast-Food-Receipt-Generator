@@ -10,19 +10,49 @@
         @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&display=swap');
         
         @media print {
-            .no-print {
+            /* Hide all UI elements except the receipt */
+            .no-print, header, footer, .no-print * {
                 display: none !important;
             }
-            body {
+
+            /* Reset body and html for clean print */
+            body, html {
                 background: white !important;
                 padding: 0 !important;
                 margin: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
             }
+
+            #root {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            /* Ensure the print area is the only thing taking space */
             .print-area {
                 box-shadow: none !important;
                 border: none !important;
                 width: 100% !important;
-                max-width: none !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 10mm !important; /* Standard margin for paper */
+                display: block !important;
+                position: relative !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+            }
+
+            /* Remove tailwind's default margins/paddings on parents */
+            main {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            section {
+                width: 100% !important;
+                padding: 0 !important;
                 margin: 0 !important;
             }
         }

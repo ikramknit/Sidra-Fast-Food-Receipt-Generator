@@ -402,17 +402,17 @@ const App: React.FC = () => {
 
         {/* Sidebar/Receipt Section */}
         <section className="w-full lg:w-[400px] shrink-0">
-          {/* Header only visible in UI, hidden during print */}
-          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-4 flex justify-between items-center no-print">
-             <div>
-              <h4 className="text-[10px] font-bold text-slate-400 uppercase">Receipt Preview</h4>
-              <p className="text-[9px] text-slate-500">Visible on bill print</p>
-             </div>
-             <div className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
-               Live
-             </div>
+          <div className="no-print">
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-4 flex justify-between items-center">
+              <div>
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase">Receipt Preview</h4>
+                <p className="text-[9px] text-slate-500">Visible on bill print</p>
+              </div>
+              <div className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+                Live
+              </div>
+            </div>
           </div>
-          {/* The Actual Receipt component */}
           <ReceiptPreview data={data} />
         </section>
       </main>
