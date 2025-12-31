@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Printer, Trash2, Receipt, Settings, ShoppingCart, UserCheck, ChevronDown, BarChart3, ListChecks } from 'lucide-react';
+import { Plus, Printer, Trash2, Receipt, Settings, ShoppingCart, UserCheck, ChevronDown, BarChart3, ListChecks, MessageSquare, Phone } from 'lucide-react';
 import { ReceiptData, ReceiptItem, MenuItem, SavedReceipt } from './types.ts';
 import ReceiptPreview from './components/ReceiptPreview.tsx';
 import AdminDashboard from './components/AdminDashboard.tsx';
@@ -28,6 +28,7 @@ const App: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     billNo: (1001 + (history?.length || 0)).toString(),
     customerName: '',
+    customerPhone: '',
     items: [{ id: '1', description: '', qty: 1, rate: 0 }],
     taxRate: 5,
   });
@@ -107,16 +108,20 @@ const App: React.FC = () => {
     });
   };
 
-  const handlePrint = () => {
+  const calculateTotals = () => {
     const validItems = data.items.filter(i => i.description.trim() !== '');
+    const subTotal = validItems.reduce((acc, item) => acc + (item.qty * item.rate), 0);
+    const taxAmount = (subTotal * data.taxRate) / 100;
+    const grandTotal = subTotal + taxAmount;
+    return { validItems, subTotal, taxAmount, grandTotal };
+  };
+
+  const handlePrint = () => {
+    const { validItems, subTotal, taxAmount, grandTotal } = calculateTotals();
     if (validItems.length === 0) {
       alert("Add items first.");
       return;
     }
-
-    const subTotal = validItems.reduce((acc, item) => acc + (item.qty * item.rate), 0);
-    const taxAmount = (subTotal * data.taxRate) / 100;
-    const grandTotal = subTotal + taxAmount;
 
     const savedRecord: SavedReceipt = {
       ...data,
@@ -135,17 +140,43 @@ const App: React.FC = () => {
       setHistory([savedRecord, ...history]);
     }
 
-    // Trigger print
     window.print();
     
-    // Reset data after printing
     setData({
       date: new Date().toISOString().split('T')[0],
       billNo: (1001 + history.length + 1).toString(),
       customerName: '',
+      customerPhone: '',
       items: [{ id: '1', description: '', qty: 1, rate: 0 }],
       taxRate: 5,
     });
+  };
+
+  const handleWhatsAppShare = () => {
+    const { validItems, grandTotal } = calculateTotals();
+    if (validItems.length === 0) {
+      alert("Please add items to the bill first.");
+      return;
+    }
+    if (!data.customerPhone) {
+      alert("Please enter a customer phone number.");
+      return;
+    }
+
+    // Prepare message
+    const itemDetails = validItems.map(item => `${item.description} x ${item.qty} = ₹${(item.qty * item.rate).toFixed(2)}`).join('\n');
+    const message = `*SIDRA FAST FOOD*\n\n` +
+                    `Hello ${data.customerName || 'Customer'},\n` +
+                    `Here is your bill summary:\n\n` +
+                    `Bill No: #${data.billNo}\n` +
+                    `Date: ${data.date}\n\n` +
+                    `${itemDetails}\n\n` +
+                    `*Total Amount: ₹${grandTotal.toFixed(2)}*\n\n` +
+                    `Thank you for visiting!`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const phone = data.customerPhone.replace(/\D/g, ''); // Remove non-numeric characters
+    window.open(`https://wa.me/${phone.length === 10 ? '91' + phone : phone}?text=${encodedMessage}`, '_blank');
   };
 
   const handleEditBill = (receipt: SavedReceipt) => {
@@ -153,6 +184,7 @@ const App: React.FC = () => {
       date: receipt.date,
       billNo: receipt.billNo,
       customerName: receipt.customerName,
+      customerPhone: receipt.customerPhone || '',
       items: [...receipt.items, { id: Math.random().toString(36).substr(2, 9), description: '', qty: 1, rate: 0 }],
       taxRate: receipt.taxRate,
     });
@@ -165,6 +197,7 @@ const App: React.FC = () => {
       date: receipt.date,
       billNo: receipt.billNo,
       customerName: receipt.customerName,
+      customerPhone: receipt.customerPhone || '',
       items: receipt.items,
       taxRate: receipt.taxRate,
     });
@@ -280,7 +313,7 @@ const App: React.FC = () => {
             </div>
           ) : (
             <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Date</label>
                   <input
@@ -300,7 +333,7 @@ const App: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Customer</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Customer Name</label>
                   <input
                     type="text"
                     placeholder="Walk-in"
@@ -308,6 +341,19 @@ const App: React.FC = () => {
                     onChange={(e) => setData({ ...data, customerName: e.target.value })}
                     className="w-full border border-slate-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-red-900 outline-none bg-slate-50 font-bold text-sm"
                   />
+                </div>
+                <div className="relative">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Phone / WhatsApp</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-2.5 text-slate-400" size={14} />
+                    <input
+                      type="tel"
+                      placeholder="9876543210"
+                      value={data.customerPhone}
+                      onChange={(e) => setData({ ...data, customerPhone: e.target.value })}
+                      className="w-full border border-slate-200 rounded-lg pl-9 pr-3 py-2 focus:ring-1 focus:ring-red-900 outline-none bg-slate-50 font-bold text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -361,12 +407,19 @@ const App: React.FC = () => {
               </div>
 
               <div className="mt-4 flex justify-between items-center text-xs font-bold text-slate-500">
-                <div className="flex gap-2">
+                <div className="flex gap-4 items-center">
                   <button
                     onClick={addItem}
                     className="flex items-center gap-1 hover:text-red-900 px-2 py-1"
                   >
                     <Plus size={14} /> New Row
+                  </button>
+                  <button
+                    onClick={handleWhatsAppShare}
+                    className="flex items-center gap-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 px-3 py-1 rounded-md transition-all border border-emerald-100"
+                  >
+                    <MessageSquare size={14} /> 
+                    <span className="font-black text-[10px] uppercase">WhatsApp Bill</span>
                   </button>
                   {editingId && (
                     <button
@@ -376,6 +429,7 @@ const App: React.FC = () => {
                           date: new Date().toISOString().split('T')[0],
                           billNo: (1001 + history.length).toString(),
                           customerName: '',
+                          customerPhone: '',
                           items: [{ id: '1', description: '', qty: 1, rate: 0 }],
                           taxRate: 5,
                         });

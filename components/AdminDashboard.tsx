@@ -69,7 +69,8 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
       const lower = searchTerm.toLowerCase();
       result = result.filter(h => 
         h.billNo.toLowerCase().includes(lower) || 
-        h.customerName.toLowerCase().includes(lower)
+        h.customerName.toLowerCase().includes(lower) ||
+        (h.customerPhone && h.customerPhone.includes(lower))
       );
     }
 
@@ -94,6 +95,45 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+  };
+
+  const handleExportCSV = () => {
+    if (filteredAndSortedHistory.length === 0) {
+      alert("No data available to export.");
+      return;
+    }
+
+    // Define CSV headers
+    const headers = ["Bill No", "Date", "Customer Name", "Customer Phone", "Items Count", "SubTotal (INR)", "Tax (INR)", "Grand Total (INR)"];
+    
+    // Map data to rows
+    const rows = filteredAndSortedHistory.map(h => [
+      h.billNo,
+      formatDate(h.date),
+      h.customerName || "Cash Sale",
+      h.customerPhone || "N/A",
+      h.items.length,
+      h.subTotal.toFixed(2),
+      h.taxAmount.toFixed(2),
+      h.grandTotal.toFixed(2)
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(r => r.join(","))
+    ].join("\n");
+
+    // Create a blob and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Sidra_Report_${fromDate || 'all'}_to_${toDate || 'today'}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -181,7 +221,7 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
               <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
               <input 
                 type="text" 
-                placeholder="Search Bill # or Name..." 
+                placeholder="Search Bill #, Name or Phone..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-lg pl-9 pr-3 py-1.5 text-xs font-bold outline-none focus:ring-1 focus:ring-red-900"
@@ -220,7 +260,12 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
                 <tr key={h.id} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-4 py-3 font-mono font-bold text-slate-900">#{h.billNo}</td>
                   <td className="px-4 py-3 text-slate-600 font-bold">{formatDate(h.date)}</td>
-                  <td className="px-4 py-3 font-bold text-slate-700">{h.customerName || 'Cash Sale'}</td>
+                  <td className="px-4 py-3 font-bold text-slate-700">
+                    <div className="flex flex-col">
+                      <span>{h.customerName || 'Cash Sale'}</span>
+                      {h.customerPhone && <span className="text-[10px] text-slate-400">{h.customerPhone}</span>}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-right font-black text-slate-900">₹{h.grandTotal.toFixed(2)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-2">
@@ -294,7 +339,7 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
            <h4 className="text-[10px] font-black text-slate-800 uppercase">Export Period Report</h4>
            <p className="text-[9px] text-slate-400 mb-3 px-8">Export data for the selected date range ({formatDate(fromDate)} to {formatDate(toDate)}).</p>
            <button 
-             onClick={() => alert("CSV Export coming soon!")}
+             onClick={handleExportCSV}
              className="bg-slate-900 text-white text-[10px] font-black px-6 py-2 rounded-lg hover:bg-slate-800 transition-all uppercase tracking-widest"
            >
              Download Excel

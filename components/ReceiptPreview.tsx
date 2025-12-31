@@ -52,7 +52,10 @@ const ReceiptPreview: React.FC<Props> = ({ data }) => {
         </div>
         <div className="col-span-2 flex border-b border-gray-200 pb-0.5">
           <span className="text-gray-400 mr-1 uppercase text-[8px]">Cust:</span>
-          <span className="flex-1 font-bold">{data.customerName || 'Cash Sale'}</span>
+          <span className="flex-1 font-bold truncate">
+            {data.customerName || 'Cash Sale'}
+            {data.customerPhone && <span className="text-[9px] ml-1 text-gray-500">({data.customerPhone})</span>}
+          </span>
         </div>
       </div>
 

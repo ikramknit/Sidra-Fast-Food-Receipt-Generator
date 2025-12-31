@@ -16,6 +16,7 @@ export interface ReceiptData {
   date: string;
   billNo: string;
   customerName: string;
+  customerPhone: string;
   items: ReceiptItem[];
   taxRate: number;
 }
