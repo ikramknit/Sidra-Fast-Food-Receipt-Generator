@@ -1,0 +1,5 @@
+{
+  "name": "Sidra Fast Food Receipt Generator",
+  "description": "A professional tool to generate and print digital receipts following the Sidra Fast Food vintage billing format. Features include dynamic item rows, automatic calculations, and a high-fidelity print-ready preview.",
+  "requestFramePermissions": []
+}
