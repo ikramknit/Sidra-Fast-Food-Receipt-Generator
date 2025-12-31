@@ -8,6 +8,7 @@ import AdminDashboard from './components/AdminDashboard.tsx';
 const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminTab, setAdminTab] = useState<'menu' | 'reports'>('reports');
+  const [editingId, setEditingId] = useState<string | null>(null);
   
   const [menu, setMenu] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('sidra_menu');
@@ -37,8 +38,10 @@ const App: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('sidra_history', JSON.stringify(history));
-    setData(prev => ({ ...prev, billNo: (1001 + history.length).toString() }));
-  }, [history]);
+    if (!editingId) {
+      setData(prev => ({ ...prev, billNo: (1001 + history.length).toString() }));
+    }
+  }, [history, editingId]);
 
   const addMenuItem = () => {
     setMenu([...menu, { id: Math.random().toString(36).substr(2, 9), name: '', rate: 0 }]);
@@ -117,7 +120,7 @@ const App: React.FC = () => {
 
     const savedRecord: SavedReceipt = {
       ...data,
-      id: Math.random().toString(36).substr(2, 9),
+      id: editingId || Math.random().toString(36).substr(2, 9),
       timestamp: Date.now(),
       items: validItems,
       subTotal,
@@ -125,7 +128,13 @@ const App: React.FC = () => {
       grandTotal
     };
 
-    setHistory([savedRecord, ...history]);
+    if (editingId) {
+      setHistory(history.map(h => h.id === editingId ? savedRecord : h));
+      setEditingId(null);
+    } else {
+      setHistory([savedRecord, ...history]);
+    }
+
     window.print();
     
     setData({
@@ -135,6 +144,32 @@ const App: React.FC = () => {
       items: [{ id: '1', description: '', qty: 1, rate: 0 }],
       taxRate: 5,
     });
+  };
+
+  const handleEditBill = (receipt: SavedReceipt) => {
+    setData({
+      date: receipt.date,
+      billNo: receipt.billNo,
+      customerName: receipt.customerName,
+      items: [...receipt.items, { id: Math.random().toString(36).substr(2, 9), description: '', qty: 1, rate: 0 }],
+      taxRate: receipt.taxRate,
+    });
+    setEditingId(receipt.id);
+    setIsAdmin(false);
+  };
+
+  const handleViewBill = (receipt: SavedReceipt) => {
+    setData({
+      date: receipt.date,
+      billNo: receipt.billNo,
+      customerName: receipt.customerName,
+      items: receipt.items,
+      taxRate: receipt.taxRate,
+    });
+    setEditingId(null); // Just viewing
+    setIsAdmin(false);
+    // Scroll to top to see preview
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -149,6 +184,11 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            {editingId && (
+              <span className="text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase">
+                Editing Bill #{data.billNo}
+              </span>
+            )}
             <button
               onClick={() => setIsAdmin(!isAdmin)}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all font-bold text-xs ${
@@ -164,7 +204,7 @@ const App: React.FC = () => {
                 className="flex items-center gap-2 bg-red-900 hover:bg-red-800 text-white px-5 py-1.5 rounded-lg font-bold text-xs shadow-sm"
               >
                 <Printer size={16} />
-                Print Bill
+                {editingId ? 'Update & Print' : 'Print Bill'}
               </button>
             )}
           </div>
@@ -228,7 +268,13 @@ const App: React.FC = () => {
                   </div>
                 </section>
               ) : (
-                <AdminDashboard history={history} onDelete={deleteFromHistory} onClearAll={clearHistory} />
+                <AdminDashboard 
+                  history={history} 
+                  onDelete={deleteFromHistory} 
+                  onClearAll={clearHistory}
+                  onView={handleViewBill}
+                  onEdit={handleEditBill}
+                />
               )}
             </div>
           ) : (
@@ -314,12 +360,31 @@ const App: React.FC = () => {
               </div>
 
               <div className="mt-4 flex justify-between items-center text-xs font-bold text-slate-500">
-                <button
-                  onClick={addItem}
-                  className="flex items-center gap-1 hover:text-red-900 px-2 py-1"
-                >
-                  <Plus size={14} /> New Row
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={addItem}
+                    className="flex items-center gap-1 hover:text-red-900 px-2 py-1"
+                  >
+                    <Plus size={14} /> New Row
+                  </button>
+                  {editingId && (
+                    <button
+                      onClick={() => {
+                        setEditingId(null);
+                        setData({
+                          date: new Date().toISOString().split('T')[0],
+                          billNo: (1001 + history.length).toString(),
+                          customerName: '',
+                          items: [{ id: '1', description: '', qty: 1, rate: 0 }],
+                          taxRate: 5,
+                        });
+                      }}
+                      className="text-red-600 hover:text-red-800 text-[10px] font-black uppercase px-2 py-1"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2">
                   <span>GST %</span>
                   <input

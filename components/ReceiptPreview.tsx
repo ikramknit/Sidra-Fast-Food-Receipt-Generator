@@ -6,6 +6,12 @@ interface Props {
   data: ReceiptData;
 }
 
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+};
+
 const ReceiptPreview: React.FC<Props> = ({ data }) => {
   // Only display items that have a description to keep the bill compact
   const validItems = data.items.filter(item => item.description.trim() !== '');
@@ -38,7 +44,7 @@ const ReceiptPreview: React.FC<Props> = ({ data }) => {
       <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-3 text-[11px] font-semibold">
         <div className="flex border-b border-gray-200 pb-0.5">
           <span className="text-gray-400 mr-1 uppercase text-[8px]">Date:</span>
-          <span className="flex-1 font-bold">{data.date}</span>
+          <span className="flex-1 font-bold">{formatDate(data.date)}</span>
         </div>
         <div className="flex border-b border-gray-200 pb-0.5">
           <span className="text-gray-400 mr-1 uppercase text-[8px]">Bill:</span>
