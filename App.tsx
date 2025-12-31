@@ -135,8 +135,10 @@ const App: React.FC = () => {
       setHistory([savedRecord, ...history]);
     }
 
+    // Trigger print
     window.print();
     
+    // Reset data after printing
     setData({
       date: new Date().toISOString().split('T')[0],
       billNo: (1001 + history.length + 1).toString(),
@@ -166,9 +168,8 @@ const App: React.FC = () => {
       items: receipt.items,
       taxRate: receipt.taxRate,
     });
-    setEditingId(null); // Just viewing
+    setEditingId(null);
     setIsAdmin(false);
-    // Scroll to top to see preview
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -212,9 +213,9 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 mt-6 flex flex-col lg:flex-row gap-6">
-        <div className="flex-1">
+        <div className="flex-1 no-print">
           {isAdmin ? (
-            <div className="space-y-6 no-print">
+            <div className="space-y-6">
               <div className="flex gap-2 p-1 bg-slate-200 rounded-lg w-fit">
                 <button 
                   onClick={() => setAdminTab('reports')}
@@ -278,7 +279,7 @@ const App: React.FC = () => {
               )}
             </div>
           ) : (
-            <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 no-print">
+            <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Date</label>
@@ -399,7 +400,19 @@ const App: React.FC = () => {
           )}
         </div>
 
-        <section className="w-full lg:w-[400px] shrink-0 no-print">
+        {/* Sidebar/Receipt Section */}
+        <section className="w-full lg:w-[400px] shrink-0">
+          {/* Header only visible in UI, hidden during print */}
+          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm mb-4 flex justify-between items-center no-print">
+             <div>
+              <h4 className="text-[10px] font-bold text-slate-400 uppercase">Receipt Preview</h4>
+              <p className="text-[9px] text-slate-500">Visible on bill print</p>
+             </div>
+             <div className="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase">
+               Live
+             </div>
+          </div>
+          {/* The Actual Receipt component */}
           <ReceiptPreview data={data} />
         </section>
       </main>
