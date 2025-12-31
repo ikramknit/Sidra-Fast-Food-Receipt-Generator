@@ -1,4 +1,10 @@
 
+export interface MenuItem {
+  id: string;
+  name: string;
+  rate: number;
+}
+
 export interface ReceiptItem {
   id: string;
   description: string;
