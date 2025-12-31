@@ -19,3 +19,11 @@ export interface ReceiptData {
   items: ReceiptItem[];
   taxRate: number;
 }
+
+export interface SavedReceipt extends ReceiptData {
+  id: string;
+  timestamp: number;
+  subTotal: number;
+  taxAmount: number;
+  grandTotal: number;
+}
