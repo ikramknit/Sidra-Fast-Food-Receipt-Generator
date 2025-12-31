@@ -7,21 +7,21 @@
     <title>Sidra Fast Food Receipt Generator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700;800;900&display=swap');
         
         @media print {
-            /* Hide all UI elements except the receipt */
             .no-print, header, footer, .no-print * {
                 display: none !important;
             }
 
-            /* Reset body and html for clean print */
             body, html {
                 background: white !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 height: auto !important;
                 overflow: visible !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             #root {
@@ -29,21 +29,20 @@
                 padding: 0 !important;
             }
 
-            /* Ensure the print area is the only thing taking space */
             .print-area {
                 box-shadow: none !important;
                 border: none !important;
                 width: 100% !important;
                 max-width: 100% !important;
                 margin: 0 !important;
-                padding: 10mm !important; /* Standard margin for paper */
+                padding: 8mm !important;
                 display: block !important;
                 position: relative !important;
                 page-break-after: avoid !important;
                 page-break-inside: avoid !important;
+                background-color: white !important;
             }
 
-            /* Remove tailwind's default margins/paddings on parents */
             main {
                 display: block !important;
                 padding: 0 !important;
@@ -61,16 +60,19 @@
             font-family: 'Crimson Pro', serif;
         }
 
-        .receipt-maroon {
-            color: #5c1b1b;
+        /* Sidra Brand Colors */
+        .text-sidra-maroon { color: #7A1616; }
+        .bg-sidra-maroon { background-color: #7A1616; }
+        .border-sidra-maroon { border-color: #7A1616; }
+        .text-sidra-gold { color: #C5A059; }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
         }
 
-        .bg-receipt-maroon {
-            background-color: #5c1b1b;
-        }
-
-        .border-receipt-maroon {
-            border-color: #5c1b1b;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
     <script type="importmap">
@@ -80,6 +82,8 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "lucide-react": "https://esm.sh/lucide-react@0.475.0",
+    "html2canvas": "https://esm.sh/html2canvas@1.4.1",
+    "jspdf": "https://esm.sh/jspdf@2.5.1",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
   }

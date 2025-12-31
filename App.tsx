@@ -1,14 +1,21 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Printer, Trash2, Receipt, Settings, ShoppingCart, UserCheck, ChevronDown, BarChart3, ListChecks, MessageSquare, Phone } from 'lucide-react';
+import { Plus, Printer, Trash2, Receipt, Settings, ShoppingCart, UserCheck, ChevronDown, BarChart3, ListChecks, MessageSquare, Phone, Lock, FileDown, Share2 } from 'lucide-react';
 import { ReceiptData, ReceiptItem, MenuItem, SavedReceipt } from './types.ts';
 import ReceiptPreview from './components/ReceiptPreview.tsx';
 import AdminDashboard from './components/AdminDashboard.tsx';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 
 const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLogin, setShowLogin] = useState(false);
   const [adminTab, setAdminTab] = useState<'menu' | 'reports'>('reports');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   
   const [menu, setMenu] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('sidra_menu');
@@ -43,6 +50,19 @@ const App: React.FC = () => {
       setData(prev => ({ ...prev, billNo: (1001 + history.length).toString() }));
     }
   }, [history, editingId]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loginEmail === 'admin@gmail.com' && loginPassword === '12345') {
+      setIsLoggedIn(true);
+      setShowLogin(false);
+      setIsAdmin(true);
+      setLoginEmail('');
+      setLoginPassword('');
+    } else {
+      alert('Invalid Credentials. Please try again.');
+    }
+  };
 
   const addMenuItem = () => {
     setMenu([...menu, { id: Math.random().toString(36).substr(2, 9), name: '', rate: 0 }]);
@@ -152,6 +172,72 @@ const App: React.FC = () => {
     });
   };
 
+  const generatePDFBlob = async () => {
+    const receiptElement = document.querySelector('.print-area') as HTMLElement;
+    if (!receiptElement) return null;
+
+    setIsGeneratingPDF(true);
+    try {
+      const canvas = await html2canvas(receiptElement, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 150] // Custom thermal printer size format
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      return pdf.output('blob');
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      return null;
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const handleSharePDF = async () => {
+    const { validItems } = calculateTotals();
+    if (validItems.length === 0) {
+      alert("Please add items to the bill first.");
+      return;
+    }
+
+    const blob = await generatePDFBlob();
+    if (!blob) return;
+
+    const file = new File([blob], `Sidra_Bill_${data.billNo}.pdf`, { type: 'application/pdf' });
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: 'Sidra Fast Food Bill',
+          text: `Bill for ${data.customerName || 'Customer'} - #${data.billNo}`
+        });
+      } catch (err) {
+        // Fallback if sharing fails or is cancelled
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Sidra_Bill_${data.billNo}.pdf`;
+        link.click();
+      }
+    } else {
+      // Fallback: Download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Sidra_Bill_${data.billNo}.pdf`;
+      link.click();
+      alert("PDF Downloaded. You can now manually share it on WhatsApp.");
+    }
+  };
+
   const handleWhatsAppShare = () => {
     const { validItems, grandTotal } = calculateTotals();
     if (validItems.length === 0) {
@@ -175,7 +261,7 @@ const App: React.FC = () => {
                     `Thank you for visiting!`;
 
     const encodedMessage = encodeURIComponent(message);
-    const phone = data.customerPhone.replace(/\D/g, ''); // Remove non-numeric characters
+    const phone = data.customerPhone.replace(/\D/g, ''); 
     window.open(`https://wa.me/${phone.length === 10 ? '91' + phone : phone}?text=${encodedMessage}`, '_blank');
   };
 
@@ -208,6 +294,59 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
+      {/* Login Modal Overlay */}
+      {showLogin && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden fade-in border border-slate-200">
+            <div className="bg-red-900 p-6 text-center">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Lock className="text-white" size={24} />
+              </div>
+              <h2 className="text-white font-black uppercase tracking-widest text-sm">Admin Access</h2>
+            </div>
+            <form onSubmit={handleLogin} className="p-6 space-y-4">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Email ID</label>
+                <input 
+                  required
+                  type="email" 
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  placeholder="admin@gmail.com"
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-red-900 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-1">Password</label>
+                <input 
+                  required
+                  type="password" 
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="•••••"
+                  className="w-full border border-slate-200 rounded-lg px-4 py-2 text-sm font-bold focus:ring-2 focus:ring-red-900 outline-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => setShowLogin(false)}
+                  className="flex-1 bg-slate-100 text-slate-600 font-bold py-2 rounded-lg text-xs"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 bg-red-900 text-white font-bold py-2 rounded-lg text-xs shadow-md active:scale-95 transition-all"
+                >
+                  Login
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white shadow-sm border-b no-print sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -224,13 +363,21 @@ const App: React.FC = () => {
               </span>
             )}
             <button
-              onClick={() => setIsAdmin(!isAdmin)}
+              onClick={() => {
+                if (isAdmin) {
+                  setIsAdmin(false);
+                } else if (!isLoggedIn) {
+                  setShowLogin(true);
+                } else {
+                  setIsAdmin(true);
+                }
+              }}
               className={`flex items-center gap-2 px-4 py-1.5 rounded-lg transition-all font-bold text-xs ${
                 isAdmin ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600'
               }`}
             >
               {isAdmin ? <ShoppingCart size={14} /> : <Settings size={14} />}
-              {isAdmin ? 'Checkout' : 'Admin'}
+              {isAdmin ? 'Checkout' : isLoggedIn ? 'Admin' : 'Login'}
             </button>
             {!isAdmin && (
               <button
@@ -406,8 +553,8 @@ const App: React.FC = () => {
                 ))}
               </div>
 
-              <div className="mt-4 flex justify-between items-center text-xs font-bold text-slate-500">
-                <div className="flex gap-4 items-center">
+              <div className="mt-4 flex flex-wrap justify-between items-center text-xs font-bold text-slate-500 gap-4">
+                <div className="flex flex-wrap gap-4 items-center">
                   <button
                     onClick={addItem}
                     className="flex items-center gap-1 hover:text-red-900 px-2 py-1"
@@ -420,6 +567,18 @@ const App: React.FC = () => {
                   >
                     <MessageSquare size={14} /> 
                     <span className="font-black text-[10px] uppercase">WhatsApp Bill</span>
+                  </button>
+                  <button
+                    onClick={handleSharePDF}
+                    disabled={isGeneratingPDF}
+                    className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1 rounded-md transition-all border border-blue-100 disabled:opacity-50"
+                  >
+                    {isGeneratingPDF ? (
+                       <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Share2 size={14} />
+                    )}
+                    <span className="font-black text-[10px] uppercase">Share PDF</span>
                   </button>
                   {editingId && (
                     <button
