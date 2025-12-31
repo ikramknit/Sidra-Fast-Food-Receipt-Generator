@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { Trash2, TrendingUp, IndianRupee, ShoppingBag, Clock, FileText, Download, Search, Eye, Edit, ArrowUpDown } from 'lucide-react';
+import { Trash2, TrendingUp, IndianRupee, ShoppingBag, Clock, FileText, Download, Search, Eye, Edit, ArrowUpDown, Calendar } from 'lucide-react';
 import { SavedReceipt } from '../types.ts';
 
 interface Props {
@@ -19,15 +19,31 @@ const formatDate = (dateStr: string) => {
 
 const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView, onEdit }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [fromDate, setFromDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(1); // Default to start of current month
+    return d.toISOString().split('T')[0];
+  });
+  const [toDate, setToDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [sortConfig, setSortConfig] = useState<{ key: keyof SavedReceipt | 'grandTotal'; direction: 'asc' | 'desc' } | null>(null);
 
+  // Filter history by date range first
+  const historyInRange = useMemo(() => {
+    return history.filter(h => {
+      const hDate = h.date; // YYYY-MM-DD
+      const start = fromDate || '0000-00-00';
+      const end = toDate || '9999-12-31';
+      return hDate >= start && hDate <= end;
+    });
+  }, [history, fromDate, toDate]);
+
   const stats = useMemo(() => {
-    const totalRevenue = history.reduce((sum, h) => sum + h.grandTotal, 0);
-    const totalOrders = history.length;
+    const totalRevenue = historyInRange.reduce((sum, h) => sum + h.grandTotal, 0);
+    const totalOrders = historyInRange.length;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     
     const itemSales: Record<string, { qty: number; rev: number }> = {};
-    history.forEach(bill => {
+    historyInRange.forEach(bill => {
       bill.items.forEach(item => {
         if (!itemSales[item.description]) {
           itemSales[item.description] = { qty: 0, rev: 0 };
@@ -43,10 +59,10 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
       .slice(0, 5);
 
     return { totalRevenue, totalOrders, avgOrderValue, topItems };
-  }, [history]);
+  }, [historyInRange]);
 
   const filteredAndSortedHistory = useMemo(() => {
-    let result = [...history];
+    let result = [...historyInRange];
 
     // Search
     if (searchTerm) {
@@ -70,7 +86,7 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
     }
 
     return result;
-  }, [history, searchTerm, sortConfig]);
+  }, [historyInRange, searchTerm, sortConfig]);
 
   const requestSort = (key: keyof SavedReceipt | 'grandTotal') => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -82,6 +98,43 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+      {/* Date Range Filter Header */}
+      <section className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Calendar className="text-red-900" size={18} />
+          <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Report Period</h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase">From:</label>
+            <input 
+              type="date" 
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-bold focus:ring-1 focus:ring-red-900 outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase">To:</label>
+            <input 
+              type="date" 
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-[11px] font-bold focus:ring-1 focus:ring-red-900 outline-none"
+            />
+          </div>
+          <button 
+            onClick={() => {
+              setFromDate('');
+              setToDate('');
+            }}
+            className="text-[10px] font-black text-slate-400 hover:text-red-900 uppercase"
+          >
+            Reset
+          </button>
+        </div>
+      </section>
+
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4">
@@ -120,7 +173,7 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
         <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-2">
             <FileText className="text-red-900" size={18} />
-            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Sales Records</h3>
+            <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Period Records</h3>
           </div>
           
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -138,7 +191,7 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
               onClick={onClearAll}
               className="text-[10px] font-black text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 uppercase"
             >
-              Clear
+              Clear DB
             </button>
           </div>
         </div>
@@ -198,7 +251,7 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
               ))}
               {filteredAndSortedHistory.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic font-bold">No records found.</td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic font-bold">No records found for this period.</td>
                 </tr>
               )}
             </tbody>
@@ -210,7 +263,7 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight mb-4 flex items-center gap-2">
-            <Clock size={14} className="text-amber-500" /> Top Selling Items
+            <Clock size={14} className="text-amber-500" /> Top Selling (Period)
           </h3>
           <div className="space-y-3">
             {stats.topItems.map((item, idx) => (
@@ -224,19 +277,22 @@ const AdminDashboard: React.FC<Props> = ({ history, onDelete, onClearAll, onView
                   <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-red-900/80 rounded-full" 
-                      style={{ width: `${(item.qty / stats.topItems[0].qty) * 100}%` }}
+                      style={{ width: stats.topItems[0].qty > 0 ? `${(item.qty / stats.topItems[0].qty) * 100}%` : '0%' }}
                     ></div>
                   </div>
                 </div>
               </div>
             ))}
+            {stats.topItems.length === 0 && (
+              <p className="text-center py-8 text-slate-400 text-[10px] font-bold uppercase">No items sold in this range</p>
+            )}
           </div>
         </section>
 
         <section className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-center items-center text-center">
            <Download size={24} className="text-slate-300 mb-2" />
-           <h4 className="text-[10px] font-black text-slate-800 uppercase">Export Data</h4>
-           <p className="text-[9px] text-slate-400 mb-3 px-8">All transactions are stored locally. Backup your data regularly.</p>
+           <h4 className="text-[10px] font-black text-slate-800 uppercase">Export Period Report</h4>
+           <p className="text-[9px] text-slate-400 mb-3 px-8">Export data for the selected date range ({formatDate(fromDate)} to {formatDate(toDate)}).</p>
            <button 
              onClick={() => alert("CSV Export coming soon!")}
              className="bg-slate-900 text-white text-[10px] font-black px-6 py-2 rounded-lg hover:bg-slate-800 transition-all uppercase tracking-widest"
