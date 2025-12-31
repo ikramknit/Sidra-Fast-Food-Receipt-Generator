@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ReceiptData } from '../types';
+import { ReceiptData } from '../types.ts';
 
 interface Props {
   data: ReceiptData;

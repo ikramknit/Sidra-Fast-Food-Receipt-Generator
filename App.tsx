@@ -1,8 +1,8 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Printer, Trash2, Receipt } from 'lucide-react';
-import { ReceiptData, ReceiptItem } from './types';
-import ReceiptPreview from './components/ReceiptPreview';
+import { ReceiptData, ReceiptItem } from './types.ts';
+import ReceiptPreview from './components/ReceiptPreview.tsx';
 
 const App: React.FC = () => {
   const [data, setData] = useState<ReceiptData>({
